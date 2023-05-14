@@ -1,6 +1,4 @@
-//https://mikeash.com/pyblog/fluid-simulation-for-dummies.html
-//^^ I owe this to the above site
-const gridSize = 128;
+const gridSize = 256;
 const diffusion = 0.0001;
 const viscosity = 0.0001;
 const timeStep = 0.001;
@@ -9,8 +7,10 @@ let velocityX, velocityY, prevVelocityX, prevVelocityY;
 let density, prevDensity;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  createCanvas(1024, 1024);
   pixelDensity(1);
+  smooth();
+  loadPixels();
 
   velocityX = new Array(gridSize * gridSize).fill(0);
   velocityY = new Array(gridSize * gridSize).fill(0);
@@ -19,18 +19,18 @@ function setup() {
 
   density = new Array(gridSize * gridSize).fill(0);
   prevDensity = new Array(gridSize * gridSize).fill(0);
+
+  background(0);
 }
 
 function draw() {
-  background(0);
-
   // Update fluid simulation
   let dt = timeStep;
   diffuse(1, prevVelocityX, velocityX, viscosity, dt, gridSize);
   diffuse(2, prevVelocityY, velocityY, viscosity, dt, gridSize);
   project(prevVelocityX, prevVelocityY, velocityX, velocityY, gridSize);
   advect(1, velocityX, prevVelocityX, prevVelocityX, prevVelocityY, dt, gridSize);
-  advect(2, velocityY, prevVelocityY, prevVelocityX, prevVelocityY, dt, gridSize);
+  advect(2, velocityY, prevVelocityY, velocityX, velocityY, dt, gridSize);
   project(velocityX, velocityY, prevVelocityX, prevVelocityY, gridSize);
   diffuse(0, prevDensity, density, diffusion, dt, gridSize);
   advect(0, density, prevDensity, velocityX, velocityY, dt, gridSize);
@@ -45,9 +45,9 @@ function draw() {
     let col = density[i] * 255;
     col = constrain(col, 0, 255);
     let idx = (px + py * width) * 4;
-    pixels[idx] = col;
-    pixels[idx + 1] = col;
-    pixels[idx + 2] = col;
+    pixels[idx] = 255 - col;
+    pixels[idx + 1] = 255 - col;
+    pixels[idx + 2] = 255 - col;
     pixels[idx + 3] = 255;
   }
   updatePixels();
@@ -70,7 +70,8 @@ function diffuse(b, x, x0, diff, dt, N) {
   for (let k = 0; k < 20; k++) {
     for (let i = 1; i < N - 1; i++) {
       for (let j = 1; j < N - 1; j++) {
-        x[i + j * N] = (x0[i + j * N] + a * (x[i - 1 + j * N] + x[i + (j - 1) * N] + x[i + 1 + j * N] + x[i + (j + 1) * N])) / (1 + 4 * a);
+        let index = i + j * N;
+        x[index] = (x0[index] + a * (x[index - 1] + x[index + 1] + x[index - N] + x[index + N])) / (1 + 4 * a);
       }
     }
     setBoundary(b, x, N);
@@ -108,8 +109,9 @@ function advect(b, d, d0, u, v, dt, N) {
 function project(u, v, p, div, N) {
   for (let i = 1; i < N - 1; i++) {
     for (let j = 1; j < N - 1; j++) {
-      div[i + j * N] = -0.5 * (u[i + 1 + j * N] - u[i - 1 + j * N] + v[i + (j + 1) * N] - v[i + (j - 1) * N]) / N;
-      p[i + j * N] = 0;
+      let index = i + j * N;
+      div[index] = -0.5 * (u[index + 1] - u[index - 1] + v[index + N] - v[index - N]) / N;
+      p[index] = 0;
     }
   }
   setBoundary(0, div, N);
@@ -117,15 +119,17 @@ function project(u, v, p, div, N) {
   for (let k = 0; k < 20; k++) {
     for (let i = 1; i < N - 1; i++) {
       for (let j = 1; j < N - 1; j++) {
-        p[i + j * N] = (div[i + j * N] + p[i - 1 + j * N] + p[i + (j - 1) * N] + p[i + 1 + j * N] + p[i + (j + 1) * N]) / 4;
+        let index = i + j * N;
+        p[index] = (div[index] + p[index - 1] + p[index + 1] + p[index - N] + p[index + N]) / 4;
       }
     }
     setBoundary(0, p, N);
   }
   for (let i = 1; i < N - 1; i++) {
     for (let j = 1; j < N - 1; j++) {
-      u[i + j * N] -= 0.5 * N * (p[i + 1 + j * N] - p[i - 1 + j * N]);
-      v[i + j * N] -= 0.5 * N * (p[i + (j + 1) * N] - p[i + (j - 1) * N]);
+      let index = i + j * N;
+      u[index] -= 0.5 * N * (p[index + 1] - p[index - 1]);
+      v[index] -= 0.5 * N * (p[index + N] - p[index - N]);
     }
   }
   setBoundary(1, u, N);
@@ -134,15 +138,23 @@ function project(u, v, p, div, N) {
 
 function setBoundary(b, x, N) {
   for (let i = 1; i < N - 1; i++) {
-    x[i + 0 * N] = b === 2 ? -x[i + 1 * N] : x[i + 1 * N];
-    x[i + (N - 1) * N] = b === 2 ? -x[i + (N - 2) * N] : x[i + (N - 2) * N];
+    let index = i + 0 * N;
+    x[index] = b === 2 ? -x[index + N] : x[index + N];
+    index = i + (N - 1) * N;
+    x[index] = b === 2 ? -x[index - N] : x[index - N];
   }
   for (let j = 1; j < N - 1; j++) {
-    x[0 + j * N] = b === 1 ? -x[1 + j * N] : x[1 + j * N];
-    x[(N - 1) + j * N] = b === 1 ? -x[(N - 2) + j * N] : x[(N - 2) + j * N];
+    let index = 0 + j * N;
+    x[index] = b === 1 ? -x[index + 1] : x[index + 1];
+    index = (N - 1) + j * N;
+    x[index] = b === 1 ? -x[index - 1] : x[index - 1];
   }
-  x[0 + 0 * N] = 0.5 * (x[1 + 0 * N] + x[0 + 1 * N]);
-  x[0 + (N - 1) * N] = 0.5 * (x[1 + (N - 1) * N] + x[0 + (N - 2) * N]);
-  x[(N - 1) + 0 * N] = 0.5 * (x[(N - 2) + 0 * N] + x[(N - 1) + 1 * N]);
-  x[(N - 1) + (N - 1) * N] = 0.5 * (x[(N - 2) + (N - 1) * N] + x[(N - 1) + (N - 2) * N]);
+  let index = 0 + 0 * N;
+  x[index] = 0.5 * (x[index + 1] + x[index + N]);
+  index = 0 + (N - 1) * N;
+  x[index] = 0.5 * (x[index + 1] + x[index - N]);
+  index = (N - 1) + 0 * N;
+  x[index] = 0.5 * (x[index - 1] + x[index + N]);
+  index = (N - 1) + (N - 1) * N;
+  x[index] = 0.5 * (x[index - 1] + x[index - N]);
 }
