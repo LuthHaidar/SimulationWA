@@ -1,4 +1,4 @@
-var gridSize = 150;
+var gridSize = 200;
 var diffusion = 0.0001;
 var viscosity = 0.0001;
 var timeStep = 0.001;
@@ -26,11 +26,6 @@ var backgroundColorControl = gui.addColor({
   backgroundColor: '#000000'
 }, 'backgroundColor');
 
-// Add a pixel color control
-var pixelColorControl = gui.addColor({
-  pixelColor: '#FFFFFF'
-}, 'pixelColor');
-
 // Get the GUI container element
 var guiContainer = document.querySelector('.dg.ac');
 
@@ -49,11 +44,7 @@ viscosityControl.onChange(function(value) {
 });
 
 backgroundColorControl.onChange(function(value) {
-  // Update the background color of the canvas or other element
-});
-
-pixelColorControl.onChange(function(value) {
-  // Update the color of the pixels or other element
+  backgroundColor = value;
 });
 
   createCanvas(windowWidth, windowHeight);
