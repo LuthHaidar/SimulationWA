@@ -1,13 +1,62 @@
-const gridSize = 256;
-const diffusion = 0.0001;
-const viscosity = 0.0001;
-const timeStep = 0.001;
+var gridSize = 150;
+var diffusion = 0.0001;
+var viscosity = 0.0001;
+var timeStep = 0.001;
+let backgroundColor = '#000000';
 
 let velocityX, velocityY, prevVelocityX, prevVelocityY;
 let density, prevDensity;
 
 function setup() {
-  createCanvas(1024, 1024);
+// Create a new GUI
+var gui = new dat.GUI();
+
+// Add a diffusion control
+var diffusionControl = gui.add({
+  diffusion: 0.0001
+}, 'diffusion', 0, 0.001, 0.00001);
+
+// Add a viscosity control
+var viscosityControl = gui.add({
+  viscosity: 0.0001
+}, 'viscosity', 0, 0.001, 0.00001);
+
+// Add a background color control
+var backgroundColorControl = gui.addColor({
+  backgroundColor: '#000000'
+}, 'backgroundColor');
+
+// Add a pixel color control
+var pixelColorControl = gui.addColor({
+  pixelColor: '#FFFFFF'
+}, 'pixelColor');
+
+// Get the GUI container element
+var guiContainer = document.querySelector('.dg.ac');
+
+// Add an event listener to the GUI container to prevent mouse interaction
+guiContainer.addEventListener('mousedown', function(event) {
+  event.stopPropagation();
+});
+
+// Listen for changes to the controls and update the variables and colors accordingly
+diffusionControl.onChange(function(value) {
+  diffusion = value;
+});
+
+viscosityControl.onChange(function(value) {
+  viscosity = value;
+});
+
+backgroundColorControl.onChange(function(value) {
+  // Update the background color of the canvas or other element
+});
+
+pixelColorControl.onChange(function(value) {
+  // Update the color of the pixels or other element
+});
+
+  createCanvas(windowWidth, windowHeight);
   pixelDensity(1);
   smooth();
   loadPixels();
@@ -20,10 +69,12 @@ function setup() {
   density = new Array(gridSize * gridSize).fill(0);
   prevDensity = new Array(gridSize * gridSize).fill(0);
 
-  background(0);
+  background(color(backgroundColor));
 }
 
 function draw() {
+  // Update background color
+  background(color(backgroundColor));
   // Update fluid simulation
   let dt = timeStep;
   diffuse(1, prevVelocityX, velocityX, viscosity, dt, gridSize);
