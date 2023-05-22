@@ -21,6 +21,10 @@ function setup() {
         viscosity: 0.0001
     }, 'viscosity', 0, 0.001, 0.00001);
 
+    var gridSizeControl = gui.add({
+        gridSize: 200
+    }, 'gridSize', 50, 500, 1);
+
     // Add a background color control
     var backgroundColorControl = gui.addColor({
         backgroundColor: '#000000'
@@ -54,6 +58,17 @@ function setup() {
 
     viscosityControl.onChange(function(value) {
         viscosity = value;
+    });
+
+    gridSizeControl.onChange(function(value) {
+        gridSize = value;
+        velocityX = new Array(gridSize * gridSize).fill(0);
+        velocityY = new Array(gridSize * gridSize).fill(0);
+        prevVelocityX = new Array(gridSize * gridSize).fill(0);
+        prevVelocityY = new Array(gridSize * gridSize).fill(0);
+
+        density = new Array(gridSize * gridSize).fill(0);
+        prevDensity = new Array(gridSize * gridSize).fill(0);
     });
 
     backgroundColorControl.onChange(function(value) {
